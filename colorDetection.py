@@ -20,7 +20,7 @@ def rescale (img, scale=0.5):
     
     return cv.resize(img,dimen,interpolation=cv.INTER_AREA)
 
-img = cv.imread('circles.jpg')
+img = cv.imread('sample.jpg')
 img = rescale(img, 0.2)
 # cv.imshow('Circles', img)
 
