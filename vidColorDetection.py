@@ -54,12 +54,14 @@ while True:
     
     for cx in xList:
         for cy in yList:
-                x = int(cx)
-                y = int(cy)
-                b, g, r = findColor(frame, x, y, radius, n_colors)
-                cv2.circle(frame, (x, y), radius, (25, 25, 25), 3)
-                cv2.rectangle(frame, (x-20, y-20+radius+10), (x+20, y+radius+10), (int(b), int(g), int(r)), thickness=-1)
-                cv2.rectangle(frame, (x-20, y-20+radius+10), (x+20, y+radius+10), (25, 25, 25), 3)
+            x = int(cx)
+            y = int(cy)
+            b, g, r = findColor(frame, x, y, radius, n_colors)
+            cv2.circle(frame, (x, y), radius, (25, 25, 25), 3)
+            cv2.rectangle(frame, (x-20, y-20+radius+10), (x+20, y+radius+10), (int(b), int(g), int(r)), thickness=-1)
+            cv2.rectangle(frame, (x-20, y-20+radius+10), (x+20, y+radius+10), (25, 25, 25), 3)
+            
+            # print("Dominant Color:", (r, g, b), "\n")
     
     cv2.imshow("Frame", frame)
     key = cv2.waitKey(1)
