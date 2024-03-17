@@ -5,71 +5,67 @@ def rescale (img, scale=0.5):
         width = int(img.shape[1] * scale)
         dimen = (width, height)
         
-        return cv2.resize(img,dimen,interpolation=cv2.INTER_AREA)    
-cap = cv2.VideoCapture(0)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-while True:
+        return cv2.resize(img,dimen,interpolation=cv2.INTER_AREA)   
+
+def roi (frame, x:int, y:int, r = 50):
+    return frame[int(y-r/2):int(y+r/2), int(x-r/2):int(x+r/2)]
+
+def findColor (frame, cx:int, cy:int, radius:int, n_colors=5):
+    # Extract ROI within the circle
+    roi_frame = roi(frame, cx, cy, radius)
     
-    # frame = cv2.imread('sample.jpg')
-    _, frame = cap.read()
-    # frame = rescale(frame, 0.2)
-    frame = cv2.flip(frame, 1)
-
-    hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-
-    height, width, _ = frame.shape
-
-    cx = int(width / 2)
-    cy = int(height / 2)
+    # Convert the ROI to float32 for k-means clustering
+    roi_frame_float32 = roi_frame.astype(np.float32)
     
-    radius = 200
-    
-    mask = np.zeros_like(frame, dtype=np.uint8)
-    # cv2.circle(mask, frame, radius, (255, 255, 255), -1)
-
-    # Extract the pixels within the circle
-    circle_pixels = cv2.bitwise_and(frame, mask)
-
-    # Convert the extracted pixels to np.float32
-    circle_pixels_float32 = circle_pixels.astype(np.float32)
-    
-    n_colors = 5
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 200, .1)
     flags = cv2.KMEANS_RANDOM_CENTERS
 
-    _, labels, palette = cv2.kmeans(circle_pixels_float32, n_colors, None, criteria, 10, flags)
-    _, counts = np.unique(labels, return_counts=True)
+    _, labels, palette = cv2.kmeans(roi_frame_float32.reshape(-1, 3), n_colors, None, criteria, 10, flags)
+    unique_labels, counts = np.unique(labels, return_counts=True)
+    
+    max_count_label = unique_labels[np.argmax(counts)]
+    dominant_color = palette[max_count_label]
+    
+    return dominant_color[0], dominant_color[1], dominant_color[2]
     
 
-    pixel_center = hsv_frame[cy, cx]
-    hue_value = pixel_center[0]
+cap = cv2.VideoCapture(0)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
-    color = "Undefined"
-    if hue_value < 5:
-        color = "RED"
-    elif hue_value < 22:
-        color = "ORANGE"
-    elif hue_value < 33:
-        color = "YELLOW"
-    elif hue_value < 78:
-        color = "GREEN"
-    elif hue_value < 131:
-        color = "BLUE"
-    elif hue_value < 170:
-        color = "VIOLET"
-    else:
-        color = "RED"
+beginX = 200
+beginY = 200
+endX = 1000
+endY = 600
+rows = 3
+columns = 5
+radius = 50
+n_colors = 5
 
-    pixel_center_bgr = frame[cy, cx]
-    b, g, r = int(pixel_center_bgr[0]), int(pixel_center_bgr[1]), int(pixel_center_bgr[2])
-    cv2.putText(frame, color, (10, 70), 0, 1.5, (b, g, r), 2)
-    cv2.circle(frame, (cx, cy), radius, (25, 25, 25), 3)
+while True:
+    _, frame = cap.read()
+    frame = cv2.flip(frame, 1)
+    
+    stepX = (endX - beginX)/float(columns)
+    stepY = (endY - beginY)/float(rows)
+    
+    xList = np.arange(beginX, endX, stepX).tolist()
+    yList = np.arange(beginY, endY, stepY).tolist()
+    
+    for cx in xList:
+        for cy in yList:
+                x = int(cx)
+                y = int(cy)
+                b, g, r = findColor(frame, x, y, radius, n_colors)
+                cv2.circle(frame, (x, y), radius, (25, 25, 25), 3)
+                cv2.rectangle(frame, (x-20, y-20+radius+10), (x+20, y+radius+10), (int(b), int(g), int(r)), thickness=-1)
+                cv2.rectangle(frame, (x-20, y-20+radius+10), (x+20, y+radius+10), (25, 25, 25), 3)
     
     cv2.imshow("Frame", frame)
     key = cv2.waitKey(1)
     
     if key == 27:
         break
+    
 cap.release()
 cv2.destroyAllWindows()
