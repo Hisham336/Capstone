@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
-from picamera.array import PiRGBArray
-from picamera import PiCamera
+
+from picamera2 import Picamera2 as PiCamera
+
 import time
 
 def rescale(img, scale=0.5):
@@ -28,7 +29,6 @@ def findColor(frame, cx:int, cy:int, radius:int, n_colors=5):
 camera = PiCamera()
 camera.resolution = (1280, 720)
 camera.framerate = 30
-rawCapture = PiRGBArray(camera, size=(1280, 720))
 
 # Allow the camera to warmup
 time.sleep(0.1)
@@ -44,32 +44,30 @@ n_colors = 5
 
 while True:
     # Capture frames from the camera
-    for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-        frame = frame.array
-        frame = cv2.flip(frame, 1)
-        
-        stepX = (endX - beginX)/float(columns)
-        stepY = (endY - beginY)/float(rows)
-        
-        xList = np.arange(beginX, endX, stepX).tolist()
-        yList = np.arange(beginY, endY, stepY).tolist()
-        
-        for cx in xList:
-            for cy in yList:
-                x = int(cx)
-                y = int(cy)
-                b, g, r = findColor(frame, x, y, radius, n_colors)
-                cv2.circle(frame, (x, y), radius, (25, 25, 25), 3)
-                cv2.rectangle(frame, (x-20, y-20+radius+10), (x+20, y+radius+10), (int(b), int(g), int(r)), thickness=-1)
-                cv2.rectangle(frame, (x-20, y-20+radius+10), (x+20, y+radius+10), (25, 25, 25), 3)
-        
-        cv2.imshow("Frame", frame)
-        key = cv2.waitKey(1) & 0xFF
-        
-        # Clear the stream in preparation for the next frame
-        rawCapture.truncate(0)
-        
-        if key == ord("q"):
-            break
+    
+    frame = camera.capture_array()
+    frame = cv2.flip(frame, 1)
+    
+    stepX = (endX - beginX)/float(columns)
+    stepY = (endY - beginY)/float(rows)
+    
+    xList = np.arange(beginX, endX, stepX).tolist()
+    yList = np.arange(beginY, endY, stepY).tolist()
+    
+    for cx in xList:
+        for cy in yList:
+            x = int(cx)
+            y = int(cy)
+            b, g, r = findColor(frame, x, y, radius, n_colors)
+            cv2.circle(frame, (x, y), radius, (25, 25, 25), 3)
+            cv2.rectangle(frame, (x-20, y-20+radius+10), (x+20, y+radius+10), (int(b), int(g), int(r)), thickness=-1)
+            cv2.rectangle(frame, (x-20, y-20+radius+10), (x+20, y+radius+10), (25, 25, 25), 3)
+    
+    cv2.imshow("Frame", frame)
+    key = cv2.waitKey(1) & 0xFF
+    
+    
+    if key == ord("q"):
+        break
 
 cv2.destroyAllWindows()
