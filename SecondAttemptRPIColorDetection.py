@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import io
 
 from picamera2 import Picamera2 as PiCamera
 
@@ -25,10 +26,20 @@ def findColor(frame, cx:int, cy:int, radius:int, n_colors=5):
     dominant_color = palette[max_count_label]
     return dominant_color[0], dominant_color[1], dominant_color[2]
 
+def genFrame():
+    camera = PiCamera()
+    camera.resolution = (1280, 720)
+    camera.framerate = 30
+    byteStream = io.BytesIO()
+    
+    for _ in camera.capture_continuous(byteStream, 'jpeg', use_video_port=True):
+        byteStream.seek(0)
+        yield byteStream.read()
+        byteStream.seek(0)
+        byteStream.truncate()
+
 # Initialize the camera and grab a reference to the raw camera capture
-camera = PiCamera()
-camera.configure(camera.create_preview_configuration(main={"format": 'XRGB8888', "size": (1280, 720)}))
-camera.start()
+
 
 # Allow the camera to warmup
 time.sleep(0.1)
@@ -45,7 +56,7 @@ n_colors = 5
 while True:
     # Capture frames from the camera
     
-    frame = camera.capture_array()
+    frame = genFrame()
     frame = cv2.flip(frame, 1)
     
     stepX = (endX - beginX)/float(columns)

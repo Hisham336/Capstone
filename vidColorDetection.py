@@ -21,6 +21,7 @@ def findColor (frame, cx:int, cy:int, radius:int, n_colors=5):
     flags = cv2.KMEANS_RANDOM_CENTERS
 
     _, labels, palette = cv2.kmeans(roi_frame_float32.reshape(-1, 3), n_colors, None, criteria, 10, flags)
+    print(roi_frame_float32.shape)
     unique_labels, counts = np.unique(labels, return_counts=True)
     
     max_count_label = unique_labels[np.argmax(counts)]
@@ -45,7 +46,7 @@ n_colors = 5
 while True:
     _, frame = cap.read()
     frame = cv2.flip(frame, 1)
-    
+
     stepX = (endX - beginX)/float(columns)
     stepY = (endY - beginY)/float(rows)
     
